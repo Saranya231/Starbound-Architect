@@ -1,0 +1,910 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>STARBOUND ARCHITECT</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Roboto:wght@300;400;700&display=swap" rel="stylesheet">
+    <style>
+        html {
+            scroll-behavior: smooth;
+        }
+        body {
+            font-family: 'Roboto', sans-serif;
+            overflow: auto;
+            touch-action: manipulation;
+            background: #090a0f;
+        }
+        h1, h2, h3, button, .font-orbitron {
+            font-family: 'Orbitron', sans-serif;
+        }
+        
+        /* General Page Styles */
+        .page-container {
+            width: 100%;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+        }
+        #landing-page {
+            background: radial-gradient(ellipse at bottom, #1b2735 0%, #090a0f 100%);
+        }
+
+        #levels-page {
+            background-image: url('https://images.unsplash.com/photo-1534796636912-3b95b3ab5986?q=80&w=2071&auto=format&fit=crop');
+            background-size: cover;
+            background-position: center;
+            animation: pan-background 120s linear infinite;
+            z-index: 0;
+        }
+
+        #levels-page::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: radial-gradient(circle at center, rgba(56, 189, 248, 0.15), transparent 60%);
+            animation: glow-pulse 10s ease-in-out infinite alternate;
+            z-index: -1;
+        }
+        
+        #game-page {
+            background-image: url('https://images.unsplash.com/photo-1464802686167-b939a6910659?q=80&w=2050&auto=format&fit=crop');
+            background-size: cover;
+            background-position: center;
+        }
+
+        #jigsaw-page {
+            background-image: url('https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=2072&auto=format&fit=crop');
+            background-size: cover;
+            background-position: center;
+        }
+
+        #catching-game-page {
+            background-image: url('https://images.unsplash.com/photo-1574013915482-410a5165103c?q=80&w=1974&auto=format&fit=crop');
+            background-size: cover;
+            background-position: center;
+        }
+
+        @keyframes pan-background {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        @keyframes glow-pulse {
+            from {
+                transform: scale(1);
+                opacity: 0.6;
+            }
+            to {
+                transform: scale(1.3);
+                opacity: 1;
+            }
+        }
+
+        .page-container.hidden {
+            display: none;
+        }
+        
+        /* 3D Render Styles */
+        #render-page {
+            overflow: hidden;
+            background-color: #000;
+            padding: 0;
+            margin: 0;
+            position: relative;
+        }
+        #render-canvas { display: block; }
+        #info-panel {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            padding: 1rem;
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 0.5rem;
+            max-width: 350px;
+            pointer-events: auto;
+        }
+        .label {
+            color: #fff;
+            padding: 4px 8px;
+            background: rgba(0, 0, 0, 0.7);
+            border-radius: 4px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            font-size: 14px;
+            text-shadow: 0 0 5px black;
+            pointer-events: none;
+            user-select: none;
+            text-align: center;
+        }
+
+        /* Existing Game Styles */
+        .control-panel {
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            background: rgba(17, 24, 39, 0.8);
+            border-left: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .habitat-floor-plan {
+            background-color: #1f2937;
+            background-image:
+                linear-gradient(rgba(255,255,255,0.05) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255,255,255,0.05) 1px, transparent 1px);
+            background-size: 20px 20px;
+            border: 2px solid #4a5568;
+            box-shadow: inset 0 0 20px rgba(0,0,0,0.5);
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s ease-in-out;
+        }
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #1f2937; }
+        ::-webkit-scrollbar-thumb { background: #4b5563; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #6b7280; }
+        .level-card {
+            backdrop-filter: blur(5px);
+            -webkit-backdrop-filter: blur(5px);
+            background: rgba(17, 24, 39, 0.7);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.3s ease;
+        }
+        .level-card:not(.completed):not(.locked):hover {
+            transform: translateY(-10px);
+            border-color: rgba(56, 189, 248, 0.8);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+        .level-card.completed {
+            border-color: #10b981;
+            background: rgba(16, 185, 129, 0.2);
+            cursor: default;
+        }
+        .level-card.locked {
+            opacity: 0.6;
+            cursor: not-allowed;
+            position: relative;
+            filter: grayscale(80%);
+        }
+        .level-card.locked:hover { transform: none; box-shadow: none; }
+        .level-card.locked::after {
+            content: '🔒'; position: absolute; top: 50%; left: 50%;
+            transform: translate(-50%, -50%); font-size: 4rem;
+            color: rgba(255, 255, 255, 0.7); text-shadow: 0 0 10px black; z-index: 10;
+        }
+        .difficulty-btn.completed, .jigsaw-difficulty-btn.completed {
+            background-color: #10b981 !important; cursor: default;
+        }
+        .difficulty-btn.completed::after, .jigsaw-difficulty-btn.completed::after { content: ' ✓'; }
+        .game-container {
+             backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            background: rgba(17, 24, 39, 0.9);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .game-board { display: grid; gap: 10px; perspective: 1000px; }
+        .card { width: 100px; height: 100px; position: relative; transform-style: preserve-3d; transition: transform 0.6s; cursor: pointer; }
+        .card.is-flipped { transform: rotateY(180deg); }
+        .card-face {
+            position: absolute; width: 100%; height: 100%; -webkit-backface-visibility: hidden;
+            backface-visibility: hidden; display: flex; flex-direction: column;
+            justify-content: center; align-items: center; border-radius: 8px; border: 2px solid #0ea5e9;
+        }
+        .card-front { background: #1f2937; } .card-front-icon { font-size: 40px; }
+        .card-back { background: #374151; transform: rotateY(180deg); } .card-back .icon { font-size: 3rem; }
+        .card-back .label { font-size: 0.7rem; text-align: center; margin-top: 5px; }
+        .card.matched { border-color: #10b981; animation: match-pulse 0.5s; }
+        @keyframes match-pulse { 0% { transform: scale(1) rotateY(180deg); } 50% { transform: scale(1.1) rotateY(180deg); } 100% { transform: scale(1) rotateY(180deg); } }
+        #jigsaw-board { display: grid; border: 2px solid #0ea5e9; background-color: #111827; box-shadow: 0 0 20px rgba(56, 189, 248, 0.5); background-size: cover; background-position: center; }
+        .jigsaw-slot { border: 1px dashed #4b5563; }
+        #jigsaw-pieces-container { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; background: rgba(0,0,0,0.2); padding: 10px; border-radius: 8px; width: 100%; min-height: 120px; }
+        .jigsaw-piece { cursor: grab; transition: all 0.2s ease-in-out; box-shadow: 0 2px 5px rgba(0,0,0,0.5); }
+        .jigsaw-piece:hover { transform: scale(1.1); box-shadow: 0 0 15px rgba(56, 189, 248, 0.7); z-index: 10; }
+        .jigsaw-piece.dragging { opacity: 0.5; cursor: grabbing; }
+        #catching-game-canvas { width: 100%; height: auto; display: block; cursor: none; background-color: #1a1a2e; background-image: radial-gradient(circle at 15% 50%, #e94560 0%, transparent 10%), radial-gradient(circle at 85% 30%, #0f3460 0%, transparent 15%), radial-gradient(circle at 50% 80%, #16213e 0%, transparent 10%); }
+        #catching-game-overlay, #catching-game-overlay.hidden { display: flex; } #catching-game-overlay.hidden { display: none; }
+        #reward-canvas { background: #000; display: block; width: 100%; height: 100%; }
+        #reward-overlay { opacity: 0; transition: opacity 1s ease-in-out; }
+    </style>
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://cdn.jsdelivr.net/npm/three@0.164.1/build/three.module.js",
+                "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.164.1/examples/jsm/"
+            }
+        }
+    </script>
+</head>
+<body class="bg-gray-900 text-gray-200">
+
+    <!-- Landing Page -->
+    <div id="landing-page" class="page-container relative overflow-hidden">
+        <canvas id="landing-canvas" class="absolute inset-0 w-full h-full z-0"></canvas>
+        <div class="relative z-10 text-center backdrop-blur-sm bg-black/40 p-10 rounded-xl">
+            <h1 class="text-5xl md:text-7xl font-bold text-cyan-300 mb-4">STARBOUND ARCHITECT</h1>
+            <p class="text-lg md:text-xl text-gray-300 mb-8 max-w-2xl text-center mx-auto">
+  Complete missions based on real NASA research to design the next generation of homes for humanity among the stars.
+</p>
+
+            <button id="start-btn" class="bg-cyan-500 hover:bg-cyan-600 text-white font-bold py-4 px-10 rounded-lg text-2xl transition-transform transform hover:scale-105">
+                Start Mission
+            </button>
+        </div>
+    </div>
+
+    <!-- Mission Selection Page -->
+    <div id="levels-page" class="page-container hidden relative overflow-hidden">
+        <div class="absolute top-8 left-8">
+            <button id="back-to-landing-btn" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded transition-colors">&lt; Back to Home</button>
+        </div>
+        <h1 class="text-5xl md:text-6xl font-bold text-cyan-300 mb-10">Select Your Mission</h1>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <div id="mission-lunar-btn" class="level-card rounded-lg cursor-pointer flex flex-col items-center justify-center p-6 h-64 text-center">
+                <div class="text-7xl mb-4">🌕</div>
+                <div><h2 class="text-2xl font-bold mb-2 text-yellow-300">Lunar Base</h2><p class="text-gray-400">Complete a habitat knowledge challenge to unlock the design module.</p></div>
+            </div>
+            <div id="mission-orbital-btn" class="level-card rounded-lg cursor-pointer flex flex-col items-center justify-center p-6 h-64 text-center">
+                <div class="text-7xl mb-4">🛰️</div>
+                <div><h2 class="text-2xl font-bold mb-2 text-sky-300">Orbital Station</h2><p class="text-gray-400">Assemble the station blueprint to proceed.</p></div>
+            </div>
+            <div id="mission-martian-btn" class="level-card rounded-lg cursor-pointer flex flex-col items-center justify-center p-6 h-64 text-center">
+                <div class="text-7xl mb-4">🪐</div>
+                <div><h2 class="text-2xl font-bold mb-2 text-red-400">Martian Outpost</h2><p class="text-gray-400">Catch the falling supplies to unlock the design module.</p></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Memory Game Page -->
+    <div id="game-page" class="page-container hidden">
+        <div class="game-container p-8 rounded-xl shadow-2xl w-full max-w-5xl">
+            <div class="flex justify-between items-center mb-6">
+                <button id="back-to-missions-game-btn" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded transition-colors">&lt; Missions</button>
+                <div class="text-center flex-grow"><h1 class="text-4xl text-cyan-300">Lunar Memory Challenge</h1><p class="text-gray-400">Match the pairs to prove your knowledge.</p></div>
+                <div class="text-right" style="width: 120px;"><p>Time: <span id="timer" class="font-bold text-xl">0</span></p><p>Moves: <span id="moves" class="font-bold text-xl">0</span></p></div>
+            </div>
+            <div id="game-board" class="game-board mx-auto"></div>
+            <div id="difficulty-selector" class="mt-6 text-center">
+                 <h3 class="text-lg mb-2">Select Difficulty:</h3>
+                 <div class="flex justify-center gap-4">
+                     <button class="difficulty-btn bg-green-600 hover:bg-green-700 px-4 py-2 rounded" data-difficulty="easy">Easy (8 Pairs)</button>
+                     <button class="difficulty-btn bg-yellow-600 hover:bg-yellow-700 px-4 py-2 rounded" data-difficulty="medium">Medium (12 Pairs)</button>
+                     <button class="difficulty-btn bg-red-600 hover:bg-red-700 px-4 py-2 rounded" data-difficulty="hard">Hard (15 Pairs)</button>
+                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Jigsaw Puzzle Page -->
+    <div id="jigsaw-page" class="page-container hidden">
+        <div class="game-container p-8 rounded-xl shadow-2xl w-full max-w-5xl">
+            <div class="flex justify-between items-center mb-6">
+                <button id="back-to-missions-jigsaw-btn" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded transition-colors">&lt; Missions</button>
+                <div class="text-center flex-grow"><h1 class="text-4xl text-cyan-300">Orbital Station Jigsaw</h1><p class="text-gray-400">Assemble the blueprint image to proceed.</p></div>
+                <div class="text-right" style="width: 120px;"><p>Time: <span id="jigsaw-timer" class="font-bold text-xl">0</span></p><p>Moves: <span id="jigsaw-moves" class="font-bold text-xl">0</span></p></div>
+            </div>
+            <div class="flex flex-col lg:flex-row items-center gap-4">
+                <div id="jigsaw-board"></div>
+                <div id="jigsaw-pieces-container" class="lg:w-1/3"></div>
+            </div>
+            <div id="jigsaw-difficulty-selector" class="mt-6 text-center">
+                 <h3 class="text-lg mb-2">Select Difficulty:</h3>
+                 <div class="flex justify-center gap-4">
+                     <button class="jigsaw-difficulty-btn bg-green-600 hover:bg-green-700 px-4 py-2 rounded" data-difficulty="easy">Easy (3x3)</button>
+                     <button class="jigsaw-difficulty-btn bg-yellow-600 hover:bg-yellow-700 px-4 py-2 rounded" data-difficulty="medium">Medium (4x4)</button>
+                     <button class="jigsaw-difficulty-btn bg-red-600 hover:bg-red-700 px-4 py-2 rounded" data-difficulty="hard">Hard (5x5)</button>
+                 </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Catching Game Page -->
+    <div id="catching-game-page" class="page-container hidden">
+        <div class="game-container p-6 rounded-xl shadow-2xl w-full max-w-3xl text-center">
+            <div class="flex justify-between items-center mb-4">
+                <button id="back-to-missions-catching-btn" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded transition-colors">&lt; Missions</button>
+                <div class="text-center flex-grow"><h1 class="text-3xl text-cyan-300">Martian Supply Drop</h1><p class="text-gray-400">Catch 8 planets. Avoid the bombs!</p></div>
+                <div style="width: 110px;"></div>
+            </div>
+            <div class="relative bg-gray-800 rounded-lg shadow-inner overflow-hidden border-2 border-cyan-500/50">
+                <canvas id="catching-game-canvas" width="800" height="600"></canvas>
+                <div id="catching-game-overlay" class="absolute inset-0 bg-black bg-opacity-70 flex-col items-center justify-center hidden">
+                    <h2 id="catching-game-status" class="text-5xl font-bold mb-4"></h2>
+                    <button id="catching-game-restart-btn" class="bg-cyan-500 hover:bg-cyan-600 text-white font-bold py-3 px-8 rounded-lg text-xl">Restart</button>
+                </div>
+                <div class="absolute top-4 left-4 text-left bg-black/50 p-2 rounded"><p class="text-2xl font-bold text-white">Score: <span id="catching-game-score" class="text-cyan-300">0</span></p></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Reward Page -->
+    <div id="reward-page" class="w-full h-screen hidden relative">
+        <canvas id="reward-canvas"></canvas>
+        <div id="reward-overlay" class="absolute inset-0 flex flex-col items-center justify-center text-center bg-black/30">
+            <h2 class="text-5xl font-bold text-cyan-300 mb-4">ALL MISSIONS COMPLETE!</h2>
+            <p class="text-xl text-gray-200 mb-8">You’re on your way to the next mission—construction begins soon!</p>
+            <button id="reward-proceed-btn" class="bg-cyan-500 hover:bg-cyan-600 text-white font-bold py-4 px-10 rounded-lg text-2xl transition-transform transform hover:scale-105">
+                View Habitat Module
+            </button>
+        </div>
+    </div>
+
+    <!-- 3D Render Page -->
+    <div id="render-page" class="page-container hidden">
+        <div id="render-container"></div>
+        <div id="info-panel">
+            <h1 class="text-2xl text-cyan-300 mb-2">Habitat Module Explorer</h1>
+            <p class="text-sm text-gray-300">An open-view concept of a long-duration crewed habitat, showcasing the layout of all internal compartments and functional zones.</p>
+            <p class="text-xs text-gray-400 mt-4">Use your mouse to rotate (left-click & drag), zoom (scroll), and pan (right-click & drag).</p>
+            <button id="back-to-missions-render-btn" class="mt-4 bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded transition-colors">&lt; Back to Missions</button>
+        </div>
+    </div>
+    
+    <!-- Modals Container -->
+    <div id="fact-modal" class="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center p-4 z-50 hidden">
+        <div class="bg-gray-800 border-2 border-cyan-400 rounded-lg shadow-2xl w-full max-w-2xl text-center p-8">
+            <h3 id="modal-title" class="text-2xl font-orbitron text-cyan-300 mb-4">Pair Matched!</h3>
+            <p id="modal-text" class="text-lg text-gray-300 mb-6"></p>
+            <button id="modal-continue-btn" class="bg-cyan-500 hover:bg-cyan-600 text-white font-bold py-2 px-6 rounded-lg">Continue</button>
+        </div>
+    </div>
+
+    <script type="module">
+    import * as THREE from 'three';
+    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+    import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
+
+    document.addEventListener('DOMContentLoaded', () => {
+        // --- Page Elements ---
+        const landingCanvas = document.getElementById('landing-canvas');
+        const landingCtx = landingCanvas.getContext('2d');
+        const page = {
+            landing: document.getElementById('landing-page'),
+            levels: document.getElementById('levels-page'),
+            game: document.getElementById('game-page'),
+            jigsaw: document.getElementById('jigsaw-page'),
+            catchingGame: document.getElementById('catching-game-page'),
+            reward: document.getElementById('reward-page'),
+            render3d: document.getElementById('render-page'),
+        };
+        const startBtn = document.getElementById('start-btn');
+        const missionLunarBtn = document.getElementById('mission-lunar-btn');
+        const missionOrbitalBtn = document.getElementById('mission-orbital-btn');
+        const missionMartianBtn = document.getElementById('mission-martian-btn');
+        const backToLandingBtn = document.getElementById('back-to-landing-btn');
+        const backToMissionsGameBtn = document.getElementById('back-to-missions-game-btn');
+        const backToMissionsJigsawBtn = document.getElementById('back-to-missions-jigsaw-btn');
+        const backToMissionsCatchingBtn = document.getElementById('back-to-missions-catching-btn');
+        const backToMissionsRenderBtn = document.getElementById('back-to-missions-render-btn');
+        const rewardProceedBtn = document.getElementById('reward-proceed-btn');
+
+        // --- Game Elements ---
+        const gameBoard = document.getElementById('game-board'), movesEl = document.getElementById('moves'), timerEl = document.getElementById('timer'), difficultySelector = document.getElementById('difficulty-selector');
+        const jigsawBoard = document.getElementById('jigsaw-board'), jigsawPiecesContainer = document.getElementById('jigsaw-pieces-container'), jigsawMovesEl = document.getElementById('jigsaw-moves'), jigsawTimerEl = document.getElementById('jigsaw-timer'), jigsawDifficultySelector = document.getElementById('jigsaw-difficulty-selector');
+        const catchingGameCanvas = document.getElementById('catching-game-canvas'), catchingGameCtx = catchingGameCanvas.getContext('2d'), catchingGameScoreEl = document.getElementById('catching-game-score'), catchingGameOverlay = document.getElementById('catching-game-overlay'), catchingGameStatusEl = document.getElementById('catching-game-status'), catchingGameRestartBtn = document.getElementById('catching-game-restart-btn');
+        const rewardCanvas = document.getElementById('reward-canvas'), rewardCtx = rewardCanvas.getContext('2d'), rewardOverlay = document.getElementById('reward-overlay');
+        const factModal = document.getElementById('fact-modal'), modalTitle = document.getElementById('modal-title'), modalText = document.getElementById('modal-text'), modalContinueBtn = document.getElementById('modal-continue-btn');
+
+        // --- Game State ---
+        const missionStatus = {
+            lunar: { unlocked: true, easy: false, medium: false, hard: false },
+            orbital: { unlocked: false, easy: false, medium: false, hard: false },
+            martian: { unlocked: false, completed: false }
+        };
+        missionStatus.lunar.isComplete = function() { return this.easy && this.medium && this.hard; };
+        missionStatus.orbital.isComplete = function() { return this.easy && this.medium && this.hard; };
+        let audioCtx;
+        
+        // --- Landing Page Animation State ---
+        let landingStars = [];
+        let comets = [];
+        let landingAnimationId = null;
+        const COMET_COLORS = ['#67e8f9', '#a78bfa', '#f472b6', '#facc15']; // cyan, purple, pink, yellow
+
+        // Memory Game State
+        let cards = [], firstCard, secondCard, lockBoard = false, moves = 0, timer = 0, timerInterval, matchedPairs = 0, totalPairs = 0, currentMemoryDifficulty = '';
+        
+        // Jigsaw Game State
+        let jigsawMoves = 0, jigsawTimer = 0, jigsawTimerInterval, correctlyPlacedPieces = 0, totalPieces = 0, currentJigsawDifficulty = '';
+        const JIGSAW_IMAGES = { easy: 'https://images.unsplash.com/photo-1614730321146-b6fa6a46bcb4?q=80&w=480&h=480&fit=crop', medium: 'https://images.unsplash.com/photo-1454789548928-9efd52dc4031?q=80&w=480&h=480&fit=crop', hard: 'https://images.unsplash.com/photo-1462331940025-496dfbfc7564?q=80&w=480&h=480&fit=crop' };
+        let currentJigsawImageUrl = '';
+        
+        // Catching Game State
+        let player, items, score, gameSpeed, itemSpawnTimer, animationFrameId, isCatchingGameActive = false;
+        const WIN_SCORE = 8, PLANET_EMOJIS = ['🌎', '🪐', '🌕', '☀️', '☄️', '⭐', '💫', '🌑'];
+        
+        // Reward Animation State
+        let stars = [], spaceship = {}, rewardAnimationId;
+        
+        // 3D Render State
+        let scene, camera, renderer, labelRenderer, controls, is3DInitialized = false;
+
+        const CARD_DEFINITIONS = [ { id: 'habitat', icon: '🏠', label: 'Habitat', fact: 'Space habitats must provide protection from radiation, micrometeoroids, and extreme temperatures.' }, { id: 'solar', icon: '☀️', label: 'Solar Power', fact: 'Solar panels are a primary source of power for most space missions and habitats.' }, { id: 'greenhouse', icon: '🌱', label: 'Greenhouse', fact: 'Growing food in space is crucial for long-term missions, reducing reliance on resupply ships.' }, { id: 'rover', icon: '🚙', label: 'Rover', fact: 'Rovers are essential for exploring planetary surfaces and transporting materials.' }, { id: 'rocket', icon: '🚀', label: 'Rocket', fact: 'Launch systems are needed to transport crew and cargo from Earth to the habitat.' }, { id: 'comms', icon: '📡', label: 'Comms Dish', fact: 'Communication arrays are vital for sending data and staying in contact with Earth.' }, { id: 'water', icon: '💧', label: 'Water Recycler', fact: 'Closed-loop water recycling systems can reclaim over 90% of water from sweat and urine.' }, { id: 'lab', icon: '🔬', label: 'Science Lab', fact: 'On-site labs allow astronauts to conduct experiments in unique microgravity or planetary environments.' }, { id: 'airlock', icon: '🚪', label: 'Airlock', fact: 'Airlocks allow astronauts to exit the habitat for spacewalks (EVAs) without depressurizing the entire structure.' }, { id: 'storage', icon: '📦', label: 'Storage', fact: 'Sufficient storage is needed for supplies, tools, and scientific samples.' }, { id: 'spacesuit', icon: '🧑‍🚀', label: 'Spacesuit', fact: 'Spacesuits are personal spacecraft, providing oxygen, temperature control, and radiation protection.' }, { id: 'robot', icon: '🤖', label: 'Robotic Arm', fact: 'Robotic arms are used for construction, maintenance, and moving large objects outside the habitat.' }, { id: 'oxygen', icon: '💨', label: 'Oxygen Gen', fact: 'Oxygen can be generated by splitting water molecules (electrolysis) or from plants.' }, { id: 'power', icon: '🔋', label: 'Power Cell', fact: 'Beyond solar, habitats may use radioisotope thermoelectric generators (RTGs) or fuel cells for power.' }, { id: 'food', icon: '🍎', label: 'Food Supply', fact: 'Freeze-dried and thermostabilized foods are the primary sustenance for astronauts.' }, ];
+        
+        // --- Navigation ---
+        function showPage(pageId) {
+            Object.values(page).forEach(p => p.classList.add('hidden'));
+            if(page[pageId]) page[pageId].classList.remove('hidden');
+            
+            if (pageId === 'landing') {
+                if (!landingAnimationId) { 
+                    initLandingAnimation();
+                }
+            } else {
+                if (landingAnimationId) {
+                    cancelAnimationFrame(landingAnimationId);
+                    landingAnimationId = null;
+                }
+            }
+
+            if (pageId === 'levels') updateLevelCardStyles();
+            if (pageId === 'game') updateMemoryDifficultyButtons();
+            if (pageId === 'jigsaw') updateJigsawDifficultyButtons();
+            if (pageId === 'render3d' && !is3DInitialized) init3D();
+        }
+
+        // --- Event Handlers ---
+        function addEventListeners() {
+            startBtn.addEventListener('click', () => showPage('levels'));
+            missionLunarBtn.addEventListener('click', () => !missionStatus.lunar.isComplete() && showPage('game'));
+            missionOrbitalBtn.addEventListener('click', () => missionStatus.orbital.unlocked && !missionStatus.orbital.isComplete() && showPage('jigsaw'));
+            missionMartianBtn.addEventListener('click', () => { if(missionStatus.martian.completed || !missionStatus.martian.unlocked) return; showPage('catchingGame'); startCatchingGame(); });
+            rewardProceedBtn.addEventListener('click', () => showPage('render3d'));
+            
+            backToLandingBtn.addEventListener('click', () => showPage('landing'));
+            backToMissionsGameBtn.addEventListener('click', () => { showPage('levels'); resetMemoryGame(); });
+            backToMissionsJigsawBtn.addEventListener('click', () => { showPage('levels'); resetJigsawGame(); });
+            backToMissionsCatchingBtn.addEventListener('click', () => { showPage('levels'); stopCatchingGame(); });
+            backToMissionsRenderBtn.addEventListener('click', () => showPage('levels'));
+            
+            catchingGameRestartBtn.addEventListener('click', startCatchingGame);
+            
+            difficultySelector.addEventListener('click', (e) => { if (e.target.classList.contains('difficulty-btn')) { startMemoryGame(e.target.dataset.difficulty); difficultySelector.classList.add('hidden'); } });
+            jigsawDifficultySelector.addEventListener('click', (e) => { if (e.target.classList.contains('jigsaw-difficulty-btn')) { const difficulty = e.target.dataset.difficulty; currentJigsawImageUrl = JIGSAW_IMAGES[difficulty]; loadJigsawImageAndStart(currentJigsawImageUrl, difficulty); jigsawDifficultySelector.classList.add('hidden'); } });
+            
+            modalContinueBtn.addEventListener('click', () => {
+                factModal.classList.add('hidden');
+                if (modalContinueBtn.dataset.action === 'nextPage') {
+                    checkAllMissionsComplete();
+                    if (! (missionStatus.lunar.isComplete() && missionStatus.orbital.isComplete() && missionStatus.martian.completed)) { showPage('levels'); }
+                }
+            });
+            
+            catchingGameCanvas.addEventListener('mousemove', movePlayer);
+            catchingGameCanvas.addEventListener('touchmove', movePlayer, { passive: true });
+
+            window.addEventListener('resize', () => {
+                // Resize 3D canvas if active
+                if (!page.render3d.classList.contains('hidden')) {
+                    onWindowResize3D();
+                }
+                // Resize landing canvas if active
+                if (!page.landing.classList.contains('hidden')) {
+                    initLandingAnimation();
+                }
+                // Resize reward canvas if active
+                if (!page.reward.classList.contains('hidden')) {
+                    startRewardAnimation();
+                }
+            });
+        }
+        
+        // --- Landing Page Animation Logic ---
+        function hexToRgba(hex, alpha) {
+            const r = parseInt(hex.slice(1, 3), 16);
+            const g = parseInt(hex.slice(3, 5), 16);
+            const b = parseInt(hex.slice(5, 7), 16);
+            return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+        }
+        
+        function initLandingAnimation() {
+            if (!landingCanvas) return;
+            landingCanvas.width = window.innerWidth;
+            landingCanvas.height = window.innerHeight;
+            landingStars = [];
+            
+            const starCount = window.innerWidth > 768 ? 200 : 100;
+            for (let i = 0; i < starCount; i++) {
+                landingStars.push({
+                    x: Math.random() * landingCanvas.width,
+                    y: Math.random() * landingCanvas.height,
+                    radius: Math.random() * 1.5,
+                    alpha: Math.random() * 0.5 + 0.2,
+                    twinkle: Math.random() * 0.02
+                });
+            }
+            
+            if (landingAnimationId) cancelAnimationFrame(landingAnimationId);
+            animateLanding();
+        }
+
+        class Comet {
+            constructor() {
+                this.x = Math.random() * landingCanvas.width;
+                this.y = 0;
+                this.radius = Math.random() * 2 + 1;
+                this.speedX = (Math.random() - 0.5) * 4;
+                this.speedY = Math.random() * 2 + 2;
+                const colorHex = COMET_COLORS[Math.floor(Math.random() * COMET_COLORS.length)];
+                this.headColor = colorHex;
+                this.tailStartColor = hexToRgba(colorHex, 0.8);
+                this.tailEndColor = hexToRgba(colorHex, 0);
+                this.tail = [];
+                this.tailLength = 20;
+            }
+            update() {
+                this.x += this.speedX;
+                this.y += this.speedY;
+                
+                this.tail.unshift({x: this.x, y: this.y});
+                if (this.tail.length > this.tailLength) {
+                    this.tail.pop();
+                }
+            }
+            draw() {
+                if(this.tail.length > 1) {
+                    landingCtx.beginPath();
+                    landingCtx.moveTo(this.tail[0].x, this.tail[0].y);
+                    for(let i = 1; i < this.tail.length - 2; i++) {
+                        const point1 = this.tail[i];
+                        const point2 = this.tail[i+1];
+                        landingCtx.quadraticCurveTo(point1.x, point1.y, (point1.x + point2.x) / 2, (point1.y + point2.y) / 2);
+                    }
+                    const gradient = landingCtx.createLinearGradient(this.x, this.y, this.tail[this.tail.length - 1].x, this.tail[this.tail.length - 1].y);
+                    gradient.addColorStop(0, this.tailStartColor);
+                    gradient.addColorStop(1, this.tailEndColor);
+                    landingCtx.strokeStyle = gradient;
+                    landingCtx.lineWidth = this.radius;
+                    landingCtx.stroke();
+                }
+                
+                landingCtx.beginPath();
+                landingCtx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                landingCtx.fillStyle = this.headColor;
+                landingCtx.fill();
+            }
+        }
+
+        function animateLanding() {
+            if (!landingCtx) return;
+            landingCtx.clearRect(0, 0, landingCanvas.width, landingCanvas.height);
+            
+            landingStars.forEach(star => {
+                star.alpha += star.twinkle;
+                if (star.alpha > 0.7 || star.alpha < 0.2) {
+                    star.twinkle = -star.twinkle;
+                }
+                landingCtx.beginPath();
+                landingCtx.arc(star.x, star.y, star.radius, 0, Math.PI * 2);
+                landingCtx.fillStyle = `rgba(255, 255, 255, ${star.alpha})`;
+                landingCtx.fill();
+            });
+            
+            if (Math.random() < 0.01 && comets.length < 3) {
+                 comets.push(new Comet());
+            }
+
+            comets.forEach((comet, index) => {
+                comet.update();
+                comet.draw();
+                if (comet.y > landingCanvas.height || comet.x < -20 || comet.x > landingCanvas.width + 20) {
+                    comets.splice(index, 1);
+                }
+            });
+
+            landingAnimationId = requestAnimationFrame(animateLanding);
+        }
+
+        // --- 3D Render Logic ---
+        function init3D() {
+            if (is3DInitialized) return;
+            is3DInitialized = true;
+            
+            const container = document.getElementById('render-container');
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x101015);
+
+            camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(0, 6, 14);
+
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(window.devicePixelRatio);
+            renderer.shadowMap.enabled = true;
+            container.appendChild(renderer.domElement);
+            
+            labelRenderer = new CSS2DRenderer();
+            labelRenderer.setSize(window.innerWidth, window.innerHeight);
+            labelRenderer.domElement.style.position = 'absolute';
+            labelRenderer.domElement.style.top = '0px';
+            labelRenderer.domElement.style.pointerEvents = 'none';
+            container.appendChild(labelRenderer.domElement);
+            
+            scene.add(new THREE.AmbientLight(0xffffff, 0.8));
+            const dirLight = new THREE.DirectionalLight(0xffffff, 1.2);
+            dirLight.position.set(8, 12, 5);
+            dirLight.castShadow = true;
+            dirLight.shadow.mapSize.width = 2048;
+            dirLight.shadow.mapSize.height = 2048;
+            scene.add(dirLight);
+
+            controls = new OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.minDistance = 5;
+            controls.maxDistance = 40;
+            controls.target.set(0, 1, 0);
+
+            createStarfield();
+            createHabitatModule();
+            
+            // window.addEventListener('resize', onWindowResize3D, false); // This is now handled by a global resize listener
+            animate3D();
+        }
+
+        function animate3D() {
+            if (!is3DInitialized) return;
+            requestAnimationFrame(animate3D);
+            controls.update();
+            renderer.render(scene, camera);
+            labelRenderer.render(scene, camera);
+        }
+
+        function onWindowResize3D() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            labelRenderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        function createStarfield() {
+            const vertices = [];
+            for (let i = 0; i < 10000; i++) {
+                vertices.push(THREE.MathUtils.randFloatSpread(2000));
+                vertices.push(THREE.MathUtils.randFloatSpread(2000));
+                vertices.push(THREE.MathUtils.randFloatSpread(2000));
+            }
+            const geom = new THREE.BufferGeometry();
+            geom.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+            const stars = new THREE.Points(geom, new THREE.PointsMaterial({ color: 0xffffff, size: 0.1 }));
+            scene.add(stars);
+        }
+        
+        function createHabitatModule() {
+            const habitatGroup = new THREE.Group();
+            const radius = 2.5, length = 14, wallThickness = 0.1;
+
+            const whiteMat = new THREE.MeshStandardMaterial({ color: 0xe0e0e0, roughness: 0.7 });
+            const floorMat = new THREE.MeshStandardMaterial({ color: 0x666666, roughness: 0.5 });
+            const blackMat = new THREE.MeshStandardMaterial({ color: 0x222222, metalness: 0.1, roughness: 0.4 });
+            
+            // Back half-cylinder shell
+            const shellGeom = new THREE.CylinderGeometry(radius, radius, length, 64, 1, true, -Math.PI / 2, Math.PI);
+            const shell = new THREE.Mesh(shellGeom, whiteMat);
+            shell.receiveShadow = true;
+            habitatGroup.add(shell);
+
+            // Floor
+            const floor = new THREE.Mesh(new THREE.PlaneGeometry(radius * 2, length), floorMat);
+            floor.rotation.x = -Math.PI / 2;
+            floor.receiveShadow = true;
+            habitatGroup.add(floor);
+            
+            // End caps (half circles)
+            const endCapGeom = new THREE.CircleGeometry(radius, 64, -Math.PI/2, Math.PI);
+            const endCap1 = new THREE.Mesh(endCapGeom, whiteMat);
+            endCap1.position.z = length/2;
+            const endCap2 = new THREE.Mesh(endCapGeom, whiteMat);
+            endCap2.position.z = -length/2;
+            habitatGroup.add(endCap1, endCap2);
+
+            createInteriorZones(habitatGroup, radius, length);
+
+            scene.add(habitatGroup);
+        }
+
+        function createInteriorZones(group, radius, length) {
+            const halfLen = length / 2;
+            const mat = {
+                white: new THREE.MeshStandardMaterial({ color: 0xf0f0f0, roughness: 0.8 }),
+                blue: new THREE.MeshStandardMaterial({ color: 0x3b82f6, roughness: 0.7 }),
+                green: new THREE.MeshStandardMaterial({ color: 0x22c55e, roughness: 0.8 }),
+                grey: new THREE.MeshStandardMaterial({ color: 0x6b7280, roughness: 0.6 }),
+                dark: new THREE.MeshStandardMaterial({ color: 0x374151, roughness: 0.5 }),
+                orange: new THREE.MeshStandardMaterial({ color: 0xf97316, roughness: 0.7 }),
+                screen: new THREE.MeshBasicMaterial({ color: 0x67e8f9 }),
+            };
+
+            // Zone 1: Bio Lab & Medical (z > 4)
+            const bioLab = createWorkstation(-1, halfLen - 1.5, mat, radius);
+            group.add(bioLab);
+            addLabel("Bio Lab", bioLab, 2.5);
+
+            // Zone 2: Crew Quarters & Hygiene (z between 1 and 4)
+            const bunk1 = createBunkBed(1.5, 2.5, mat, radius);
+            group.add(bunk1);
+            addLabel("Crew\nQuarters", bunk1, 2);
+            
+            const hygiene = createHygieneUnit(-1.8, 2.5, mat, radius);
+            group.add(hygiene);
+            addLabel("Hygiene", hygiene, 2);
+
+            // Zone 3: Wardroom / Galley (z between -2 and 1)
+            const table = createTable(0, -0.5, mat, radius);
+            group.add(table);
+            addLabel("Wardroom", table, 2.2);
+
+            const galley = createGalley(-1.8, -0.5, mat, radius);
+            group.add(galley);
+            addLabel("Galley", galley, 2);
+
+            // Zone 4: Exercise & Stowage (z between -5 and -2)
+            const treadmill = createTreadmill(1.2, -3.5, mat, radius);
+            group.add(treadmill);
+            addLabel("Exercise", treadmill, 2.2);
+            
+            const stowage = createStowageRacks(-1.5, -4, mat, radius);
+            group.add(stowage);
+            addLabel("Stowage", stowage, 2.5);
+            
+            // Zone 5: Radiation Shelter (z < -5)
+            const shelter = createShelter(0, -halfLen + 1, mat.orange, radius);
+            group.add(shelter);
+            addLabel("Radiation\nShelter", shelter, 2.5);
+        }
+        
+        // --- Component Builders ---
+        function createWorkstation(x, z, mat, radius) {
+            const group = new THREE.Group();
+            group.position.set(x, -radius + 0.5, z);
+            const desk = createBox(2, 0.05, 0.8, mat.white);
+            const screen = createBox(0.8, 0.5, 0.05, mat.screen);
+            screen.position.set(0, 0.4, -0.35);
+            const equipment = createBox(0.4, 0.3, 0.4, mat.grey);
+            equipment.position.set(0.6, 0.2, 0);
+            group.add(desk, screen, equipment);
+            return group;
+        }
+
+        function createBunkBed(x, z, mat, radius) {
+            const group = new THREE.Group();
+            group.position.set(x, -radius + 0.4, z);
+            const frame = createBox(0.1, 1.2, 2.2, mat.grey);
+            const bed1 = createBox(1, 0.2, 2, mat.blue);
+            bed1.position.y = -0.3;
+            const bed2 = bed1.clone();
+            bed2.position.y = 0.3;
+            group.add(frame, bed1, bed2);
+            return group;
+        }
+        
+        function createHygieneUnit(x, z, mat, radius) {
+            const group = new THREE.Group();
+            group.position.set(x, 0, z);
+            const wall1 = createBox(1.5, 2, 0.1, mat.white);
+            wall1.position.y = -radius+1;
+            const wall2 = createBox(0.1, 2, 1.5, mat.white);
+            wall2.position.set(0.7, -radius+1, -0.7);
+            group.add(wall1, wall2);
+            return group;
+        }
+        
+        function createTable(x, z, mat, radius) {
+            const group = new THREE.Group();
+            group.position.set(x, -radius + 0.8, z);
+            const top = createBox(2.5, 0.05, 1.2, mat.white);
+            const base = createBox(0.2, 0.8, 0.2, mat.grey);
+            base.position.y = -0.4;
+            const bench1 = createBox(2.5, 0.1, 0.4, mat.blue);
+            bench1.position.set(0, -0.3, 0.8);
+            const bench2 = bench1.clone();
+            bench2.position.z = -0.8;
+            group.add(top, base, bench1, bench2);
+            return group;
+        }
+
+        function createGalley(x, z, mat, radius) {
+            const group = new THREE.Group();
+            group.position.set(x, -radius + 0.5, z);
+            const counter = createBox(1.2, 1, 3, mat.white);
+            group.add(counter);
+            return group;
+        }
+
+        function createTreadmill(x, z, mat, radius) {
+            const group = new THREE.Group();
+            group.position.set(x, -radius + 0.2, z);
+            const base = createBox(0.8, 0.1, 2, mat.dark);
+            const console = createBox(0.7, 0.8, 0.1, mat.grey);
+            console.position.set(0, 0.5, -0.9);
+            group.add(base, console);
+            return group;
+        }
+
+        function createStowageRacks(x, z, mat, radius) {
+            const group = new THREE.Group();
+            group.position.set(x, -radius + 1, z);
+            for(let i=0; i<3; i++) {
+                const rack = createBox(2, 0.05, 1, mat.grey);
+                rack.position.y = i * 0.7 - 0.7;
+                group.add(rack);
+                const box = createBox(0.5, 0.5, 0.5, mat.white);
+                box.position.set(Math.random() * 1 - 0.5, i * 0.7 - 0.4, Math.random() * 0.4 - 0.2);
+                group.add(box);
+            }
+            return group;
+        }
+        
+        function createShelter(x, z, material, radius) {
+            const group = new THREE.Group();
+            group.position.set(x, 0, z);
+            const wall = createBox(4, 2.5, 0.5, material);
+            wall.position.y = -radius + 1.25;
+            group.add(wall);
+            return group;
+        }
+        
+        function createBox(w, h, d, material) { 
+            const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), material);
+            mesh.castShadow = true;
+            mesh.receiveShadow = true;
+            return mesh;
+        }
+        function addLabel(text, parent, yOffset = 1.5, zOffset = 0) { 
+            const div = document.createElement('div'); 
+            div.className = 'label'; 
+            div.innerHTML = text.replace('\n', '<br>');
+            const label = new CSS2DObject(div); 
+            const worldPos = new THREE.Vector3();
+            parent.getWorldPosition(worldPos);
+            label.position.set(worldPos.x, yOffset, worldPos.z + zOffset); 
+            // We add labels to the main habitat group so their positions are in world space relative to the group
+            parent.parent.add(label);
+        }
+        
+        // --- All other game logic functions (minified for brevity) ---
+        
+        function updateLevelCardStyles() { if (missionStatus.lunar.isComplete()) missionStatus.orbital.unlocked = true; if (missionStatus.orbital.isComplete()) missionStatus.martian.unlocked = true; missionLunarBtn.classList.toggle('completed', missionStatus.lunar.isComplete()); missionOrbitalBtn.classList.toggle('completed', missionStatus.orbital.isComplete()); missionOrbitalBtn.classList.toggle('locked', !missionStatus.orbital.unlocked); missionMartianBtn.classList.toggle('completed', missionStatus.martian.completed); missionMartianBtn.classList.toggle('locked', !missionStatus.martian.unlocked); }
+        function checkAllMissionsComplete() { if (missionStatus.lunar.isComplete() && missionStatus.orbital.isComplete() && missionStatus.martian.completed) { setTimeout(() => { showPage('reward'); startRewardAnimation(); }, 500); } }
+        function startRewardAnimation() { rewardCanvas.width = window.innerWidth; rewardCanvas.height = window.innerHeight; rewardOverlay.style.opacity = '0'; stars = []; for (let i = 0; i < 200; i++) { stars.push({ x: Math.random() * rewardCanvas.width, y: Math.random() * rewardCanvas.height, radius: Math.random() * 1.5, alpha: Math.random() }); } spaceship = { x: rewardCanvas.width / 2, y: rewardCanvas.height + 150, width: 80, height: 160, destinationY: rewardCanvas.height / 2, arrived: false, overlayTriggered: false }; if (rewardAnimationId) cancelAnimationFrame(rewardAnimationId); animateRewardScene(); }
+        function animateRewardScene() { rewardCtx.clearRect(0, 0, rewardCanvas.width, rewardCanvas.height); let speedRatio = spaceship.arrived ? 0.2 : 1; stars.forEach(star => { star.y += 1 * speedRatio; if (star.y > rewardCanvas.height) { star.y = 0; star.x = Math.random() * rewardCanvas.width; } rewardCtx.globalAlpha = star.alpha; rewardCtx.fillStyle = 'white'; rewardCtx.beginPath(); rewardCtx.arc(star.x, star.y, star.radius, 0, Math.PI * 2); rewardCtx.fill(); }); rewardCtx.globalAlpha = 1; if (!spaceship.arrived) { const distance = spaceship.destinationY - spaceship.y; if (Math.abs(distance) < 1) { spaceship.y = spaceship.destinationY; spaceship.arrived = true; } else { spaceship.y += distance * 0.04; } } drawRocket(spaceship.x, spaceship.y, spaceship.width, spaceship.height, !spaceship.arrived); if (spaceship.arrived) { rewardCtx.font = "bold 28px Orbitron, sans-serif"; rewardCtx.fillStyle = "#0ea5e9"; rewardCtx.textAlign = "center"; rewardCtx.shadowColor = "rgba(14, 165, 233, 0.7)"; rewardCtx.shadowBlur = 10; rewardCtx.fillText("You have reached the location!", rewardCanvas.width / 2, spaceship.y - spaceship.height / 2 - 20); rewardCtx.shadowBlur = 0; if (!spaceship.overlayTriggered) { spaceship.overlayTriggered = true; setTimeout(() => { rewardOverlay.style.opacity = '1'; }, 2000); } } if (parseFloat(rewardOverlay.style.opacity) < 1) { rewardAnimationId = requestAnimationFrame(animateRewardScene); } else { if (rewardAnimationId) cancelAnimationFrame(rewardAnimationId); } }
+        function drawRocket(x,y,w,h,thrusting) { if(thrusting){ const tH = h/4+Math.random()*10; const tG = rewardCtx.createLinearGradient(x,y+h/2,x,y+h/2+tH); tG.addColorStop(0,'rgba(255,200,0,1)'); tG.addColorStop(1,'rgba(255,0,0,0)'); rewardCtx.fillStyle=tG; rewardCtx.beginPath(); rewardCtx.moveTo(x-w/4,y+h/2); rewardCtx.lineTo(x+w/4,y+h/2); rewardCtx.lineTo(x,y+h/2+tH); rewardCtx.closePath(); rewardCtx.fill(); } rewardCtx.fillStyle='#E0E0E0'; rewardCtx.beginPath(); rewardCtx.moveTo(x,y-h/2); rewardCtx.quadraticCurveTo(x-w/2,y,x-w/3,y+h/2); rewardCtx.lineTo(x+w/3,y+h/2); rewardCtx.quadraticCurveTo(x+w/2,y,x,y-h/2); rewardCtx.closePath(); rewardCtx.fill(); rewardCtx.fillStyle='#BDBDBD'; rewardCtx.beginPath(); rewardCtx.moveTo(x-w/3,y+h/3); rewardCtx.lineTo(x-w/2,y+h/2+10); rewardCtx.lineTo(x-w/3,y+h/2); rewardCtx.closePath(); rewardCtx.fill(); rewardCtx.beginPath(); rewardCtx.moveTo(x+w/3,y+h/3); rewardCtx.lineTo(x+w/2,y+h/2+10); rewardCtx.lineTo(x+w/3,y+h/2); rewardCtx.closePath(); rewardCtx.fill(); rewardCtx.fillStyle='#0ea5e9'; rewardCtx.beginPath(); rewardCtx.arc(x,y-h/8,w/6,0,Math.PI*2); rewardCtx.fill(); }
+        function startCatchingGame() { catchingGameOverlay.classList.add('hidden'); score = 0; gameSpeed = 2; items = []; itemSpawnTimer = 0; isCatchingGameActive = true; player = { x: catchingGameCanvas.width / 2, y: catchingGameCanvas.height - 50, width: 100, height: 40 }; catchingGameScoreEl.textContent = score; if (animationFrameId) cancelAnimationFrame(animationFrameId); catchingGameLoop(); }
+        function stopCatchingGame() { isCatchingGameActive = false; if (animationFrameId) { cancelAnimationFrame(animationFrameId); animationFrameId = null; } }
+        function spawnItem() { const isBomb = Math.random() < 0.25; items.push({ x: Math.random() * (catchingGameCanvas.width - 40), y: -40, radius: 20, speed: gameSpeed + Math.random() * 2, isBomb: isBomb, emoji: isBomb ? '💣' : PLANET_EMOJIS[Math.floor(Math.random() * PLANET_EMOJIS.length)] }); }
+        function movePlayer(e) { if (!isCatchingGameActive) return; const rect = catchingGameCanvas.getBoundingClientRect(); let touchX = e.clientX || (e.touches && e.touches[0].clientX); if (touchX) { player.x = touchX - rect.left; if (player.x - player.width/2 < 0) player.x = player.width/2; if (player.x + player.width/2 > catchingGameCanvas.width) player.x = catchingGameCanvas.width - player.width/2; } }
+        function catchingGameLoop() { catchingGameCtx.clearRect(0, 0, catchingGameCanvas.width, catchingGameCanvas.height); itemSpawnTimer++; if (itemSpawnTimer > Math.max(30, 100 - gameSpeed * 5)) { spawnItem(); itemSpawnTimer = 0; } for (let i = items.length - 1; i >= 0; i--) { const item = items[i]; item.y += item.speed; catchingGameCtx.font = '36px sans-serif'; catchingGameCtx.textAlign = 'center'; catchingGameCtx.textBaseline = 'middle'; catchingGameCtx.fillText(item.emoji, item.x, item.y); if (item.y + item.radius > player.y - player.height/2 && item.y - item.radius < player.y + player.height/2 && item.x > player.x - player.width/2 && item.x < player.x + player.width/2) { if (item.isBomb) { playBombHitSound(); endCatchingGame(false); return; } else { score++; playCatchSound(); catchingGameScoreEl.textContent = score; gameSpeed += 0.2; items.splice(i, 1); if (score >= WIN_SCORE) { endCatchingGame(true); return; } } } if (item.y - item.radius > catchingGameCanvas.height) { if (!item.isBomb) { playMissSound(); } items.splice(i, 1); } } drawPlayer(); if(isCatchingGameActive) { animationFrameId = requestAnimationFrame(catchingGameLoop); } }
+        function drawPlayer() { const p = player, x = p.x - p.width/2, y = p.y - p.height/2; catchingGameCtx.fillStyle='#87CEEB'; catchingGameCtx.beginPath(); catchingGameCtx.moveTo(x,y); catchingGameCtx.lineTo(x+p.width,y); catchingGameCtx.lineTo(x+p.width*0.85,y+p.height); catchingGameCtx.lineTo(x+p.width*0.15,y+p.height); catchingGameCtx.closePath(); catchingGameCtx.fill(); catchingGameCtx.strokeStyle='#FFFFFF'; catchingGameCtx.lineWidth=4; catchingGameCtx.beginPath(); catchingGameCtx.moveTo(x,y); catchingGameCtx.lineTo(x+p.width,y); catchingGameCtx.stroke(); catchingGameCtx.strokeStyle='rgba(173,216,230,0.7)'; catchingGameCtx.lineWidth=8; catchingGameCtx.lineCap='round'; catchingGameCtx.filter='blur(4px)'; catchingGameCtx.beginPath(); catchingGameCtx.moveTo(x,y); catchingGameCtx.lineTo(x+p.width,y); catchingGameCtx.stroke(); catchingGameCtx.filter='none'; }
+        function endCatchingGame(win) { isCatchingGameActive = false; stopCatchingGame(); if (win) { missionStatus.martian.completed = true; showModal('Mission Success!', `You've secured the supplies! All missions are now complete. Prepare for final construction.`, 'nextPage'); } else { catchingGameOverlay.classList.remove('hidden'); catchingGameStatusEl.textContent = 'Game Over'; catchingGameStatusEl.style.color = '#ef4444'; catchingGameRestartBtn.textContent = 'Try Again'; } }
+        function playSound(type, freq1, freq2, duration, gainVal) { if(!audioCtx) try { audioCtx = new(window.AudioContext||window.webkitAudioContext)(); } catch(e){ console.error(e); return; } if(audioCtx.state === 'suspended') audioCtx.resume(); const osc = audioCtx.createOscillator(), gain = audioCtx.createGain(); osc.connect(gain); gain.connect(audioCtx.destination); osc.type=type; osc.frequency.setValueAtTime(freq1, audioCtx.currentTime); gain.gain.setValueAtTime(gainVal, audioCtx.currentTime); osc.frequency.exponentialRampToValueAtTime(freq2, audioCtx.currentTime+duration*0.8); gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime+duration); osc.start(); osc.stop(audioCtx.currentTime+duration); }
+        function playCatchSound() { playSound('sine', 880, 880, 0.15, 0.1); } function playMissSound() { playSound('triangle', 150, 50, 0.2, 0.25); } function playBombHitSound() { playSound('sawtooth', 120, 40, 0.3, 0.2); } function playMatchSound() { playSound('sine', 523.25, 1046.50, 0.2, 0.15); } function playPiecePlaceSound() { playSound('triangle', 440, 440, 0.15, 0.2); } function playMismatchSound() { playSound('square', 164.81, 123.47, 0.2, 0.1); }
+        function startMemoryGame(difficulty) { resetMemoryGame(); currentMemoryDifficulty = difficulty; const pairCounts = { easy: 8, medium: 12, hard: 15 }; totalPairs = pairCounts[difficulty]; let gameCards = CARD_DEFINITIONS.slice(0, totalPairs); gameCards = [...gameCards, ...gameCards]; for (let i = gameCards.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [gameCards[i], gameCards[j]] = [gameCards[j], gameCards[i]]; } const columnCount = { easy: 4, medium: 6, hard: 6 }[difficulty]; gameBoard.style.gridTemplateColumns = `repeat(${columnCount}, 100px)`; gameCards.forEach(cardDef => { const cardElement = document.createElement('div'); cardElement.classList.add('card'); cardElement.dataset.id = cardDef.id; cardElement.innerHTML = `<div class="card-face card-front"><span class="card-front-icon">🚀</span></div><div class="card-face card-back"><div class="icon">${cardDef.icon}</div><div class="label">${cardDef.label}</div></div>`; cardElement.addEventListener('click', flipCard); gameBoard.appendChild(cardElement); cards.push(cardElement); }); startTimer(timerEl, 'memory'); }
+        function flipCard() { if (lockBoard || this === firstCard) return; this.classList.add('is-flipped'); if (!firstCard) { firstCard = this; return; } secondCard = this; moves++; movesEl.textContent = moves; checkForMatch(); }
+        function checkForMatch() { firstCard.dataset.id === secondCard.dataset.id ? disableCards() : unflipCards(); }
+        function disableCards() { playMatchSound(); firstCard.removeEventListener('click', flipCard); secondCard.removeEventListener('click', flipCard); firstCard.classList.add('matched'); secondCard.classList.add('matched'); const matchedDef = CARD_DEFINITIONS.find(c => c.id === firstCard.dataset.id); if(matchedDef) { showModal('Pair Matched!', matchedDef.fact, false); } matchedPairs++; if (matchedPairs === totalPairs) { setTimeout(() => { modalContinueBtn.dataset.action = 'winMemory'; if (!factModal.classList.contains('hidden')) { modalContinueBtn.addEventListener('click', () => winMemoryGame(), { once: true }); } else { winMemoryGame(); } }, 1000); } resetBoard(); }
+        function unflipCards() { lockBoard = true; playMismatchSound(); setTimeout(() => { firstCard.classList.remove('is-flipped'); secondCard.classList.remove('is-flipped'); resetBoard(); }, 1200); }
+        function resetBoard() { [firstCard, secondCard, lockBoard] = [null, null, false]; }
+        function winMemoryGame() { clearInterval(timerInterval); missionStatus.lunar[currentMemoryDifficulty] = true; const allLunarComplete = missionStatus.lunar.isComplete(); const title = `Success on ${currentMemoryDifficulty.charAt(0).toUpperCase() + currentMemoryDifficulty.slice(1)}!`; const text = allLunarComplete ? 'Lunar Mission fully complete! You have unlocked the Orbital Station Mission.' : 'Difficulty complete! Return to mission control to select another difficulty.'; showModal(title, text, 'nextPage'); }
+        function resetMemoryGame() { gameBoard.innerHTML = ''; cards = []; [firstCard, secondCard, lockBoard] = [null, null, false]; moves = 0; timer = 0; matchedPairs = 0; totalPairs = 0; movesEl.textContent = '0'; timerEl.textContent = '0'; clearInterval(timerInterval); difficultySelector.classList.remove('hidden'); }
+        function updateMemoryDifficultyButtons() { document.querySelectorAll('#difficulty-selector .difficulty-btn').forEach(btn => { const difficulty = btn.dataset.difficulty; if (missionStatus.lunar[difficulty]) { btn.classList.add('completed'); btn.disabled = true; } else { btn.classList.remove('completed'); btn.disabled = false; } }); }
+        function loadJigsawImageAndStart(imageUrl, difficulty) { const img = new Image(); img.crossOrigin = "Anonymous"; img.onload = () => { startJigsawGame(difficulty, img); }; img.onerror = () => { console.error("Jigsaw image failed to load from URL:", imageUrl); showModal('Load Error', 'Could not load the blueprint image. Please check your connection or try again later.', 'nextPage'); }; img.src = imageUrl; }
+        function startJigsawGame(difficulty, loadedImage) { resetJigsawGame(); currentJigsawDifficulty = difficulty; const gridSize = { easy: 3, medium: 4, hard: 5 }[difficulty]; totalPieces = gridSize * gridSize; const boardSize = 480; const pieceSize = boardSize / gridSize; jigsawBoard.style.gridTemplateColumns = `repeat(${gridSize}, ${pieceSize}px)`; jigsawBoard.style.gridTemplateRows = `repeat(${gridSize}, ${pieceSize}px)`; jigsawBoard.style.width = `${boardSize}px`; jigsawBoard.style.height = `${boardSize}px`; const pieces = []; const pieceCanvas = document.createElement('canvas'); pieceCanvas.width = pieceSize; pieceCanvas.height = pieceSize; const pieceCtx = pieceCanvas.getContext('2d'); for (let i = 0; i < totalPieces; i++) { const row = Math.floor(i / gridSize), col = i % gridSize; const slot = document.createElement('div'); slot.classList.add('jigsaw-slot'); slot.dataset.index = i; jigsawBoard.appendChild(slot); slot.addEventListener('dragover', e => e.preventDefault()); slot.addEventListener('drop', handlePieceDrop); pieceCtx.drawImage(loadedImage, col * pieceSize, row * pieceSize, pieceSize, pieceSize, 0, 0, pieceSize, pieceSize); const piece = document.createElement('div'); piece.classList.add('jigsaw-piece'); piece.style.width = `${pieceSize}px`; piece.style.height = `${pieceSize}px`; piece.style.backgroundImage = `url(${pieceCanvas.toDataURL()})`; piece.style.backgroundSize = 'cover'; piece.draggable = true; piece.dataset.index = i; piece.addEventListener('dragstart', handlePieceDragStart); pieces.push(piece); } pieces.sort(() => Math.random() - 0.5).forEach(p => jigsawPiecesContainer.appendChild(p)); startTimer(jigsawTimerEl, 'jigsaw'); }
+        function handlePieceDragStart(e) { e.dataTransfer.setData('text/plain', e.target.dataset.index); setTimeout(() => { e.target.classList.add('dragging', 'opacity-50'); }, 0); }
+        function handlePieceDrop(e) { e.preventDefault(); const draggedIndex = e.dataTransfer.getData('text/plain'); const targetSlot = e.target.closest('.jigsaw-slot'); document.querySelector(`.jigsaw-piece[data-index='${draggedIndex}']`)?.classList.remove('dragging', 'opacity-50'); if (targetSlot && !targetSlot.hasChildNodes()) { const slotIndex = targetSlot.dataset.index; jigsawMoves++; jigsawMovesEl.textContent = jigsawMoves; if (draggedIndex === slotIndex) { const piece = document.querySelector(`.jigsaw-piece[data-index='${draggedIndex}']`); if (piece) { targetSlot.appendChild(piece); playPiecePlaceSound(); piece.draggable = false; correctlyPlacedPieces++; if (correctlyPlacedPieces === totalPieces) { winJigsawGame(); } } } } }
+        function winJigsawGame() { clearInterval(jigsawTimerInterval); missionStatus.orbital[currentJigsawDifficulty] = true; const allOrbitalComplete = missionStatus.orbital.isComplete(); const title = `Blueprint Assembled (${currentJigsawDifficulty.charAt(0).toUpperCase() + currentJigsawDifficulty.slice(1)})!`; const text = allOrbitalComplete ? 'Orbital Station blueprints are fully assembled! You have unlocked the Martian Outpost Mission.' : 'Difficulty complete! Return to mission control to select another difficulty.'; jigsawBoard.innerHTML = ''; jigsawBoard.style.backgroundImage = `url(${currentJigsawImageUrl})`; jigsawBoard.style.border = '2px solid #10b981'; jigsawPiecesContainer.classList.add('hidden'); setTimeout(() => { showModal(title, text, 'nextPage'); }, 1000); }
+        function resetJigsawGame() { jigsawBoard.innerHTML = ''; jigsawPiecesContainer.innerHTML = ''; jigsawMoves = 0; jigsawTimer = 0; correctlyPlacedPieces = 0; totalPieces = 0; jigsawMovesEl.textContent = '0'; jigsawTimerEl.textContent = '0'; clearInterval(jigsawTimerInterval); jigsawDifficultySelector.classList.remove('hidden'); jigsawBoard.style.backgroundImage = 'none'; jigsawBoard.style.borderColor = '#0ea5e9'; jigsawPiecesContainer.classList.remove('hidden'); }
+        function updateJigsawDifficultyButtons() { document.querySelectorAll('#jigsaw-difficulty-selector .jigsaw-difficulty-btn').forEach(btn => { const difficulty = btn.dataset.difficulty; if (missionStatus.orbital[difficulty]) { btn.classList.add('completed'); btn.disabled = true; } else { btn.classList.remove('completed'); btn.disabled = false; } }); }
+        function startTimer(element, type) { let seconds = 0; clearInterval(type === 'memory' ? timerInterval : jigsawTimerInterval); const interval = setInterval(() => { seconds++; element.textContent = seconds; if (type === 'memory') timer = seconds; if (type === 'jigsaw') jigsawTimer = seconds; }, 1000); if (type === 'memory') timerInterval = interval; if (type === 'jigsaw') jigsawTimerInterval = interval; }
+        function showModal(title, text, action) { modalTitle.textContent = title; modalText.textContent = text; modalContinueBtn.dataset.action = action || ''; const buttonText = action === 'nextPage' ? 'Proceed' : 'Continue'; modalContinueBtn.textContent = buttonText; factModal.classList.remove('hidden'); }
+
+        // --- Initialize Game ---
+        initLandingAnimation();
+        addEventListeners();
+    });
+    </script>
+</body>
+</html>
